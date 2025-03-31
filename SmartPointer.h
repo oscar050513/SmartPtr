@@ -90,8 +90,7 @@ T* MySharedPtr<T>::operator->() const
 template <typename T>
 MySharedPtr<T>::~MySharedPtr()
 {
-  refCntPtr->fetch_sub(1);
-  if(refCntPtr->load()==0)
+  if(refCntPtr!=nullptr && refCntPtr->load()==0)
   {
     d_deleter(d_data);
     d_data = nullptr;
@@ -119,8 +118,8 @@ void MySharedPtr<T>::reset()
     d_deleter(d_data);
     delete refCntPtr;
   }
-  d_data = nullptr;
   refCntPtr = nullptr;
+  d_data = nullptr;
   d_deleter = default_deleter;
 }
 
@@ -149,11 +148,9 @@ template <typename T>
 T* MySharedPtr<T>::release()
 {
   refCntPtr->fetch_sub(1);
-  std::cout<<"refcount is : "<<refCntPtr->load()<<std::endl;
-  auto refcnt = refCntPtr->load();
-  if(refcnt==0)
+  if(refCntPtr->load()==0)
   {
-    refCntPtr->store(1);
+    refCntPtr=nullptr;
   }
   auto ret = d_data;
   d_data = nullptr;
@@ -171,5 +168,13 @@ MySharedPtr<T>::operator bool() const
 {
   return d_data!=nullptr;
 }
+
+/*
+template <typename T>
+class MyUniquePtr {
+
+};
+*/
+
 
 #endif
