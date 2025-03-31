@@ -90,12 +90,16 @@ T* MySharedPtr<T>::operator->() const
 template <typename T>
 MySharedPtr<T>::~MySharedPtr()
 {
-  if(refCntPtr!=nullptr && refCntPtr->load()==0)
+  if(refCntPtr!=nullptr)
   {
+   refCntPtr->fetch_sub(1);
+    if(refCntPtr->load()==0)
+   {
     d_deleter(d_data);
     d_data = nullptr;
     delete refCntPtr;
-    refCntPtr = nullptr; 
+    refCntPtr = nullptr;
+   } 
   }
 }
 
@@ -112,11 +116,14 @@ bool MySharedPtr<T>::isUnique() const
 template <typename T>
 void MySharedPtr<T>::reset()
 {
+  if(refCntPtr!=nullptr)
+  {
   refCntPtr->fetch_sub(1);
   if(refCntPtr->load()==0)
   {
     d_deleter(d_data);
     delete refCntPtr;
+  }
   }
   refCntPtr = nullptr;
   d_data = nullptr;
@@ -126,11 +133,14 @@ void MySharedPtr<T>::reset()
 template <typename T>
 void MySharedPtr<T>::reset(T* t)
 {
+  if(refCntPtr)
+  {
   refCntPtr->fetch_sub(1);
   if(refCntPtr->load()==0)
-  {
+   {
     d_deleter(d_data);
     delete refCntPtr;
+   }
   }
   d_data = t;
   d_deleter = default_deleter;
@@ -147,10 +157,14 @@ void MySharedPtr<T>::reset(T* t, std::function<void(T*)> deleter)
 template <typename T>
 T* MySharedPtr<T>::release()
 {
+  if(refCntPtr!=nullptr)
+  {
   refCntPtr->fetch_sub(1);
   if(refCntPtr->load()==0)
-  {
+   {
+    delete refCntPtr;
     refCntPtr=nullptr;
+   }
   }
   auto ret = d_data;
   d_data = nullptr;
